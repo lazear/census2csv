@@ -1,3 +1,51 @@
+//! census2csv
+//!
+//! A simple command line tool to convert multiplexed TMT proteomics data
+//! from census_out format to CSV files, combining by protein or peptide
+//!
+//! Customizable (and serializable) filters allow for consistent data
+//! processing among multiple users
+//! 
+//! example filter.json file
+//! ```json
+//! {
+//!   "peptide_filters": [
+//!     "Unique",
+//!     "Tryptic",
+//!     {
+//!       "TotalIntensity": 5000
+//!     }
+//!   ],
+//!   "protein_filters": [
+//!     "ExcludeReverse",
+//!     {
+//!       "SequenceCounts": 2
+//!     }
+//!   ]
+//! }
+//! ```
+//!
+//! MIT License
+//! Copyright (c) 2019 Michael Lazear
+//!
+//! Permission is hereby granted, free of charge, to any person obtaining a copy
+//! of this software and associated documentation files (the "Software"), to deal
+//! in the Software without restriction, including without limitation the rights
+//! to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//! copies of the Software, and to permit persons to whom the Software is
+//! furnished to do so, subject to the following conditions:
+//!
+//! The above copyright notice and this permission notice shall be included in all
+//! copies or substantial portions of the Software.
+//!
+//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//! SOFTWARE.
+
 use census_proteomics::*;
 use clap::{App, Arg, ArgGroup};
 use serde_json;
@@ -79,7 +127,7 @@ fn combine_peptide<'a, P: AsRef<Path>>(
     let mut file = fs::File::create(outpath)?;
     writeln!(
         file,
-        "accession,description,spectral_count,sequence_count,sequence,{}",
+        "accession,description,spectral_count,sequence,{}",
         (1..=data.channels)
             .map(|i| format!("channel_{}", i))
             .collect::<Vec<String>>()
@@ -100,19 +148,20 @@ fn combine_peptide<'a, P: AsRef<Path>>(
         }
 
         for (sequence, summed_values) in map {
+            let spec = cnt[sequence];
             let adj = summed_values
                 .into_iter()
-                .map(|v| format!("{}", if average { v / cnt[sequence] } else { v }))
+                .map(|v| format!("{}", if average { v / spec } else { v }))
                 .collect::<Vec<String>>()
                 .join(",");
 
             writeln!(
                 file,
-                "{},{},{},{},{},{}",
+                "{},{},{},{},{}",
                 prot.accession,
                 prot.description.replace(",", ";"),
-                prot.spectral_count,
-                prot.sequence_count,
+                spec,
+                // prot.sequence_count,
                 sequence,
                 adj
             )?;
@@ -183,8 +232,8 @@ fn main() {
         )
         .get_matches();
 
-    // declare up here to get around borrowck
-    let mut filterbuf: String;
+    // declare up here to get around borrowck and lifetimes
+    let filterbuf;
 
     let filter = match matches.value_of("filter") {
         Some(path) => {

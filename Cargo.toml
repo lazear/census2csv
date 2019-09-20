@@ -3,6 +3,10 @@ name = "census2csv"
 version = "0.1.0"
 authors = ["Michael Lazear <lazear@scripps.edu>"]
 edition = "2018"
+license = "MIT"
+description = "Convert TMT multiplexed proteomics data in the Census format to CSV files"
+repository = "https://github.com/lazear/census2csv.git"
+homepage = "https://github.com/lazear/census2csv"
 
 [dependencies]
 census-proteomics = { version = "0.1.7", features =["serialization"] } 

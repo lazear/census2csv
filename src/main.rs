@@ -5,7 +5,7 @@
 //!
 //! Customizable (and serializable) filters allow for consistent data
 //! processing among multiple users
-//! 
+//!
 //! example filter.json file
 //! ```json
 //! {
@@ -190,7 +190,7 @@ fn generate_example() {
 fn main() {
     let matches = App::new("census2csv")
         .version("0.1")
-        .author("Michael R. Lazar <lazear@scripps.edu>")
+        .author("Michael R. Lazear <lazear@scripps.edu>")
         .about("Parse, filter, and convert census out files to csv")
         .group(
             ArgGroup::with_name("combine")

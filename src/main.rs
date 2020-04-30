@@ -110,6 +110,51 @@ fn combine_protein<'a, P: AsRef<Path>>(
     Ok(())
 }
 
+fn flat_peptide<'a, P: AsRef<Path>>(
+    path: P,
+    filters: &Filter<'a>,
+    average: bool,
+) -> std::io::Result<()> {
+    let mut outpath = PathBuf::from(path.as_ref());
+    if !outpath.set_extension("csv") {
+        panic!("Cannot set file extension for {}", outpath.display());
+    }
+
+    let file = fs::read_to_string(path)?;
+    let data = census_proteomics::read_census(&file).expect("Error parsing census file!");
+    let data = data.filter(filters);
+
+    let mut file = fs::File::create(outpath)?;
+    writeln!(
+        file,
+        "accession,description,sequence,{}",
+        (1..=data.channels)
+            .map(|i| format!("channel_{}", i))
+            .collect::<Vec<String>>()
+            .join(",")
+    )?;
+
+    for prot in &data.proteins {
+        for peptide in &prot.peptides {
+            let adj = (*peptide.values)
+                .into_iter()
+                .map(|v| format!("{}", v))
+                .collect::<Vec<String>>()
+                .join(",");
+            writeln!(
+                file,
+                "{},{},{},{}",
+                prot.accession,
+                prot.description.replace(",", ";"),
+                peptide.sequence,
+                adj
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
 fn combine_peptide<'a, P: AsRef<Path>>(
     path: P,
     filters: &Filter<'a>,
@@ -195,7 +240,7 @@ fn main() {
         .group(
             ArgGroup::with_name("combine")
                 .required(true)
-                .args(&["peptide", "protein"]),
+                .args(&["peptide", "protein", "flat"]),
         )
         .arg(
             Arg::with_name("peptide")
@@ -209,6 +254,13 @@ fn main() {
                 .help("Output protein-level data")
                 .long("protein")
                 .short("r")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("flat")
+                .help("Output completely flat")
+                .long("flat")
+                .short("F")
                 .takes_value(false),
         )
         .arg(
@@ -256,6 +308,8 @@ fn main() {
     {
         let res = if matches.is_present("peptide") {
             combine_peptide(f, &filter, matches.is_present("average"))
+        } else if matches.is_present("flat") {
+            flat_peptide(f, &filter, matches.is_present("average"))
         } else {
             combine_protein(f, &filter, matches.is_present("average"))
         };

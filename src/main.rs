@@ -54,6 +54,16 @@ use std::fs;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
+/// Read in a census file, combining peptides to protein level, and output to a file
+/// with the same base file name and a `.csv` extension
+///
+/// Arguments
+///
+/// * path - Input file path. Output file will have same path, but a `.csv` extension
+///
+/// * filters - Filter object to apply on the protein and peptide level
+///
+/// * average - whether to take the average signal intensities (true), or the sum (false)
 fn combine_protein<'a, P: AsRef<Path>>(
     path: P,
     filters: &Filter<'a>,

@@ -184,12 +184,12 @@ fn combine_peptide<'a, P: AsRef<Path>>(
         let mut cnt: HashMap<&str, u32> = HashMap::new();
         for peptide in &prot.peptides {
             let entry = map
-                .entry(peptide.sequence)
+                .entry(&peptide.sequence)
                 .or_insert((0..data.channels).map(|_| 0).collect::<Vec<u32>>());
             for (idx, val) in peptide.values.iter().enumerate() {
                 entry[idx] += *val;
             }
-            *cnt.entry(peptide.sequence).or_insert(0) += 1;
+            *cnt.entry(&peptide.sequence).or_insert(0) += 1;
         }
 
         for (sequence, summed_values) in map {
